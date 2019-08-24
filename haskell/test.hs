@@ -79,10 +79,10 @@ isEven n = n `mod` 2 == 0
 
 raceAverage :: Double -> Double -> String
 raceAverage race victory
-	| avg == 1 					= "Great driver"
+	| avg == 1 = "Great driver"
 	| (avg >= 0.3) && (avg < 1) = "Almost a Great Drive"
 	| (avg > 0) && (avg < 0.3) 	= "Bad Driver"
-	| otherwise 				= "You are not a driver: "
+	| otherwise = "You are not a driver: "
 	where avg = race / victory
 	
 
@@ -235,29 +235,65 @@ getSix = getElements [11,12,13,14,15,16,17,18] 6
 getNine = getElements [11,12,13,14,15,16,17,18] 9
 
 
--- data Digrafo v = G [v] deriving Show
--- g1 = G [1,2,3]
--- show g1
 
--- data Digrafo v = G [v] (v -> [v])
+-- stackoverflow.com/questions/54657866/
+conv :: Monad m => m (a, m b) -> m (a, b)
+conv = (=<<) (uncurry (fmap . (,)))
 
--- grafo1 = (G [1..4] suc) where
--- 	suc 1 = [2,3]
--- 	suc 2 = [4]
--- 	suc 3 = [4]
--- 	suc 4 = []
+data Digrafo v = G  [v] [ (v, [v]) ]
 
--- vertices :: Digrafo v -> [v]
--- vertices g = 
+g1 = G [1,2,3,4] [ (1, [2,3]), (2, [4]), (3, [4]) ]
 
+vertex :: Digrafo v -> [v]
+vertex (G lv _) = lv
 
--- data Digrafo v = G { vertex :: [v],  nodes:: (v, [v])}
+getVertexs = vertex g1
 
--- g1 = G ( [1,2,3], [ (1, [2]), (2, [3]) ] ) 
+arcs :: Digrafo v -> [(v,v)]  -- [ (v, [v]) ]
+arcs (G _ la) = conv la
 
--- g1 = G { vertex=[1,2,3,4], nodes=(1, [2,3])
-  
-data Some v = SD ([v], [v])
+getArcs = arcs g1
 
-let s1 = SD(  [1,2,3], [1,2,3])
+nVertex :: Digrafo v -> Int
+nVertex (G lv la) = length lv
 
+vertexLenght = nVertex g1
+
+nArc :: Digrafo v -> Int
+nArc (G lv la) = length (conv la)
+
+arcsLength = nArc g1
+
+-- fst la == v 
+-- let la_t = tail la
+-- succVertex $ (G _ la_t) vertex
+	
+-- succVertex :: Digrafo v -> v -> [v]
+-- succVertex (G lv la) vertex = testSuc la vertex		
+
+arcsl = [ (1, [2,3]), (2, [4]), (7, [1,2]), (9, [2,3]) ]
+
+minSucc :: Eq v => v -> [(v, [v])] -> [v]
+minSucc target (x:xs)
+	| target == (fst x) = snd x
+	| target /= (fst x) = minSucc target xs
+minSucc _ _ = []
+
+sucesores :: Eq v => Digrafo v -> v -> [v]
+sucesores (G lv la) x
+	| length la > 0 = minSucc x la
+	| length la <= 0 = []
+
+-- findNine = minSucc 9 arcsl		-- [2,3]
+-- otherNine = sucesores g1 1	-- [2,3]
+
+inside :: Eq v => v -> [v] -> Bool
+inside target (x:xs)
+	| target == x = True
+	| target /= x = inside target xs
+inside _ _ = False
+
+minPred :: Eq v => v -> [(v, [v])] -> [v]
+minPred target (x:xs)
+	| inside target (snd x) = (fst x):minPred target xs
+minPred _ _ = []
